@@ -1,0 +1,17 @@
+services:
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: web
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./web:/usr/local/app
+      - db_data:/sqlite_data
+
+volumes:
+  db_data:
+  
