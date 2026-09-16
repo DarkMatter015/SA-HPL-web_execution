@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SA-HPL & GSPN | Analytics Dashboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+    <style>
+        body { background-color: #f4f6f9; color: #212529; font-family: system-ui, -apple-system, sans-serif; }
+        .kpi-card { border-radius: 12px; border: none; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important; }
+        .kpi-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .chart-card { border-radius: 12px; border: none; }
+        .table-container { max-height: 420px; overflow-y: auto; }
+        .checkbox-menu { max-height: 250px; overflow-y: auto; }
+        
+        .dropdown-item-custom { padding: 0.35rem 1rem; transition: background-color 0.15s; }
+        .dropdown-item-custom:hover { background-color: #e9ecef; cursor: pointer; }
+        .dropdown-item-custom:hover .form-check-label, 
+        .dropdown-item-custom:hover .form-check-input { color: #000 !important; cursor: pointer; }
+        .filter-btn-text { font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
+                <i class="bi bi-cpu text-primary"></i><span>SA-HPL & GSPN Analytics</span>
+            </a>
+            <span class="navbar-text text-light small d-none d-sm-inline">
+                <i class="bi bi-diagram-3-fill text-success me-1"></i>Painel Analítico de Validação
+            </span>
+        </div>
+    </nav>
+
+    <!-- Filtros Fixados -->
+    <div class="sticky-top bg-white border-bottom shadow-sm py-3 z-3">
+        <div class="container-fluid px-4">
+            <div class="row g-2 align-items-center">
+                
+                <div class="col-12 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Tipo de Execução</label>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary w-100 text-start dropdown-toggle bg-white text-truncate filter-btn-text" type="button" id="btnDropTipo" data-bs-toggle="dropdown" data-bs-auto-close="outside">Tipos</button>
+                        <ul class="dropdown-menu checkbox-menu w-100 py-1 shadow-sm">
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-tipo" type="checkbox" value="SA-HPL" id="chkTipo1" checked><label class="form-check-label w-100" for="chkTipo1">SA-HPL</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-tipo" type="checkbox" value="GSPN" id="chkTipo2" checked><label class="form-check-label w-100" for="chkTipo2">GSPN</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-tipo" type="checkbox" value="HYBRID" id="chkTipo3" checked><label class="form-check-label w-100" for="chkTipo3">Híbrido</label></div></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Estratégias OpenMP</label>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary w-100 text-start dropdown-toggle bg-white text-truncate filter-btn-text" type="button" id="btnDropEst" data-bs-toggle="dropdown" data-bs-auto-close="outside">Estratégias</button>
+                        <ul class="dropdown-menu checkbox-menu w-100 py-1 shadow-sm">
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-estrategia" type="checkbox" value="STATIC" id="chkEst1" checked><label class="form-check-label w-100" for="chkEst1">Static</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-estrategia" type="checkbox" value="DYNAMIC" id="chkEst2" checked><label class="form-check-label w-100" for="chkEst2">Dynamic</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-estrategia" type="checkbox" value="GUIDED" id="chkEst3" checked><label class="form-check-label w-100" for="chkEst3">Guided</label></div></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Threads</label>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary w-100 text-start dropdown-toggle bg-white text-truncate filter-btn-text" type="button" id="btnDropThread" data-bs-toggle="dropdown" data-bs-auto-close="outside">Threads</button>
+                        <ul class="dropdown-menu checkbox-menu w-100 py-1 shadow-sm">
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-thread" type="checkbox" value="2" id="chkT1" checked><label class="form-check-label w-100" for="chkT1">2</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-thread" type="checkbox" value="4" id="chkT2" checked><label class="form-check-label w-100" for="chkT2">4</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-thread" type="checkbox" value="8" id="chkT3" checked><label class="form-check-label w-100" for="chkT3">8</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-thread" type="checkbox" value="16" id="chkT4" checked><label class="form-check-label w-100" for="chkT4">16</label></div></li>
+                            <li class="dropdown-item-custom"><div class="form-check m-0"><input class="form-check-input chk-thread" type="checkbox" value="32" id="chkT5" checked><label class="form-check-label w-100" for="chkT5">32</label></div></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Dimensão da Matriz (N)</label>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary w-100 text-start dropdown-toggle bg-white text-truncate filter-btn-text" type="button" id="btnDropMatriz" data-bs-toggle="dropdown" data-bs-auto-close="outside">Matrizes</button>
+                        <ul class="dropdown-menu checkbox-menu w-100 py-1 shadow-sm" id="menuMatrizes">
+                            <!-- Injetado via JS -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary btn-sm w-100 py-2 fw-semibold" id="btnFiltrar">
+                        <i class="bi bi-play-fill me-1"></i> Atualizar Painéis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid px-4 py-4">
+        
+        <!-- SEÇÃO 1: KPIs -->
+        <div class="row g-3 mb-5">
+            <div class="col-12 col-sm-6 col-xl"><div class="card kpi-card shadow-sm h-100"><div class="card-body d-flex align-items-center gap-3"><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-collection"></i></div><div><div class="text-muted small text-uppercase fw-semibold">Execuções</div><h3 class="fw-bold mb-0" id="kpiTotal">0</h3></div></div></div></div>
+            <div class="col-12 col-sm-6 col-xl"><div class="card kpi-card shadow-sm h-100"><div class="card-body d-flex align-items-center gap-3"><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-lightning-charge-fill"></i></div><div><div class="text-muted small text-uppercase fw-semibold">Média SA-HPL</div><h3 class="fw-bold mb-0 text-primary" id="kpiEmpirico">0.0</h3></div></div></div></div>
+            <div class="col-12 col-sm-6 col-xl"><div class="card kpi-card shadow-sm h-100"><div class="card-body d-flex align-items-center gap-3"><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="bi bi-graph-up"></i></div><div><div class="text-muted small text-uppercase fw-semibold">Média GSPN</div><h3 class="fw-bold mb-0 text-success" id="kpiTeorico">0.0</h3></div></div></div></div>
+            <div class="col-12 col-sm-6 col-xl"><div class="card kpi-card shadow-sm h-100"><div class="card-body d-flex align-items-center gap-3"><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-bullseye"></i></div><div><div class="text-muted small text-uppercase fw-semibold">Desvio (Erro)</div><h3 class="fw-bold mb-0 text-danger" id="kpiErro">0.0%</h3></div></div></div></div>
+        </div>
+
+        <!-- SEÇÃO 2: Gráficos Globais -->
+        <h5 class="fw-bold mb-3 text-secondary">Análises de Desempenho Agregado</h5>
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Comparativo por Threads (Barras)</h6></div>
+                    <div class="card-body"><div id="graficoThreadsBar" style="width: 100%; height: 320px"></div></div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Escalabilidade por Threads (Linhas)</h6></div>
+                    <div class="card-body"><div id="graficoThreadsLine" style="width: 100%; height: 320px"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Eficiência por Estratégia OpenMP</h6></div>
+                    <div class="card-body"><div id="graficoEstrategias" style="width: 100%; height: 320px"></div></div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card chart-card shadow-sm h-100 border-primary">
+                    <div class="card-header bg-transparent border-0 pt-3 px-4">
+                        <h6 class="fw-bold mb-0">Heatmap: Erro Relativo (Matriz vs Threads)</h6>
+                        <small class="text-muted">Acurácia preditiva cruzada</small>
+                    </div>
+                    <div class="card-body px-0 pb-3">
+                        <div id="graficoHeatmap" style="width: 100%; height: 320px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOVO: Gráfico de Dispersão de Largura Total -->
+        <div class="row g-4 mb-5">
+            <div class="col-12">
+                <div class="card chart-card shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-3 px-4">
+                        <h6 class="fw-bold mb-0">Dispersão Bruta de Vazão por Dimensão da Matriz (Outliers e Variância)</h6>
+                        <small class="text-muted">Visualização não agregada do comportamento empírico e estocástico</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="graficoMatriz" style="width: 100%; height: 400px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 3: Tabela Histórica -->
+        <h5 class="fw-bold mb-3 text-secondary">Detalhamento Histórico</h5>
+        <div class="card chart-card shadow-sm mb-5">
+            <div class="card-body p-0">
+                <div class="table-responsive table-container">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="ps-4">Tipo</th>
+                                <th>Estratégia</th>
+                                <th>Threads</th>
+                                <th>Matriz (N)</th>
+                                <th class="text-end">Físico (GFLOPs)</th>
+                                <th class="text-end">Teórico (GFLOPs)</th>
+                                <th class="text-end pe-4">Erro Relativo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaCorpo"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+    <script>
+        const mockData = [
+            { id: 1, tipo: "HYBRID", scaling_strategy: "STATIC", num_threads: 4, matriz: 10000, empirico_flops: 150.5, teorico_flops: 148.2 },
+            { id: 2, tipo: "HYBRID", scaling_strategy: "STATIC", num_threads: 8, matriz: 10000, empirico_flops: 290.1, teorico_flops: 295.4 },
+            { id: 3, tipo: "HYBRID", scaling_strategy: "DYNAMIC", num_threads: 4, matriz: 20000, empirico_flops: 160.3, teorico_flops: 155.0 },
+            { id: 4, tipo: "HYBRID", scaling_strategy: "DYNAMIC", num_threads: 8, matriz: 20000, empirico_flops: 310.8, teorico_flops: 300.5 },
+            { id: 5, tipo: "HYBRID", scaling_strategy: "GUIDED", num_threads: 16, matriz: 30000, empirico_flops: 620.4, teorico_flops: 610.1 },
+            { id: 6, tipo: "SA-HPL", scaling_strategy: "STATIC", num_threads: 16, matriz: 30000, empirico_flops: 590.2, teorico_flops: null },
+            { id: 7, tipo: "GSPN", scaling_strategy: "GUIDED", num_threads: 32, matriz: 40000, empirico_flops: null, teorico_flops: 1100.5 },
+            { id: 8, tipo: "HYBRID", scaling_strategy: "GUIDED", num_threads: 32, matriz: 40000, empirico_flops: 1080.3, teorico_flops: 1095.0 },
+            { id: 9, tipo: "HYBRID", scaling_strategy: "STATIC", num_threads: 32, matriz: 10000, empirico_flops: 410.2, teorico_flops: 430.1 },
+            { id: 10, tipo: "HYBRID", scaling_strategy: "DYNAMIC", num_threads: 16, matriz: 20000, empirico_flops: 580.9, teorico_flops: 550.0 }
+        ];
+
+        function inicializarFiltroMatrizes() {
+            const mtzUnicas = [...new Set(mockData.map(d => d.matriz))].sort((a,b)=>a-b);
+            const menu = document.getElementById("menuMatrizes");
+            menu.innerHTML = "";
+            mtzUnicas.forEach((m, idx) => {
+                menu.innerHTML += `
+                    <li class="dropdown-item-custom">
+                        <div class="form-check m-0">
+                            <input class="form-check-input chk-matriz" type="checkbox" value="${m}" id="chkM${idx}" checked>
+                            <label class="form-check-label w-100" for="chkM${idx}">N = ${m}</label>
+                        </div>
+                    </li>
+                `;
+            });
+        }
+        inicializarFiltroMatrizes();
+
+        function getValoresMarcados(classeCSS) { return Array.from(document.querySelectorAll(classeCSS + ':checked')).map(cb => cb.value); }
+
+        function atualizarTextosFiltros() {
+            const domMap = [
+                { classe: ".chk-tipo", idBtn: "btnDropTipo" },
+                { classe: ".chk-estrategia", idBtn: "btnDropEst" },
+                { classe: ".chk-thread", idBtn: "btnDropThread" },
+                { classe: ".chk-matriz", idBtn: "btnDropMatriz" }
+            ];
+            domMap.forEach(map => {
+                const vals = getValoresMarcados(map.classe);
+                const btn = document.getElementById(map.idBtn);
+                if(vals.length === 0) btn.innerText = "Vazio";
+                else if(vals.length <= 2) btn.innerText = vals.join(", ");
+                else btn.innerText = `${vals.length} itens`;
+            });
+        }
+        document.querySelectorAll('.form-check-input').forEach(cb => cb.addEventListener('change', atualizarTextosFiltros));
+
+        function calcularErro(emp, teo) { return (emp && teo) ? Math.abs((emp - teo) / emp) * 100 : null; }
+
+        function filtrarDados() {
+            const tipos = getValoresMarcados(".chk-tipo");
+            const estrategias = getValoresMarcados(".chk-estrategia");
+            const threads = getValoresMarcados(".chk-thread").map(Number);
+            const matrizes = getValoresMarcados(".chk-matriz").map(Number);
+            
+            return mockData.filter(d => 
+                tipos.includes(d.tipo) && estrategias.includes(d.scaling_strategy) && 
+                threads.includes(d.num_threads) && matrizes.includes(d.matriz)
+            );
+        }
+
+        function agruparEixos(dados, chave) {
+            const grupos = {};
+            dados.forEach(d => {
+                const k = d[chave];
+                if (!grupos[k]) grupos[k] = { eSum: 0, eCnt: 0, tSum: 0, tCnt: 0 };
+                if (d.empirico_flops) { grupos[k].eSum += d.empirico_flops; grupos[k].eCnt++; }
+                if (d.teorico_flops) { grupos[k].tSum += d.teorico_flops; grupos[k].tCnt++; }
+            });
+            const keys = Object.keys(grupos).sort((a,b) => isNaN(a) ? a.localeCompare(b) : Number(a) - Number(b));
+            return {
+                x: keys,
+                yEmp: keys.map(k => grupos[k].eCnt > 0 ? grupos[k].eSum / grupos[k].eCnt : 0),
+                yTeo: keys.map(k => grupos[k].tCnt > 0 ? grupos[k].tSum / grupos[k].tCnt : 0)
+            };
+        }
+
+        function renderizarHeatmap(dadosBrutos) {
+            const uThreads = getValoresMarcados(".chk-thread").map(Number).sort((a,b)=>a-b);
+            const uMatrizes = getValoresMarcados(".chk-matriz").map(Number).sort((a,b)=>a-b);
+
+            const zData = uMatrizes.map(m => {
+                return uThreads.map(t => {
+                    const dtFiltrado = dadosBrutos.filter(d => d.matriz === m && d.num_threads === t);
+                    let eSum=0, eCnt=0, tSum=0, tCnt=0;
+                    dtFiltrado.forEach(d => {
+                        if(d.empirico_flops){ eSum+=d.empirico_flops; eCnt++; }
+                        if(d.teorico_flops){ tSum+=d.teorico_flops; tCnt++; }
+                    });
+                    const emp = eCnt>0 ? eSum/eCnt : null;
+                    const teo = tCnt>0 ? tSum/tCnt : null;
+                    return calcularErro(emp, teo);
+                });
+            });
+
+            const data = [{
+                z: zData, x: uThreads.map(t => `${t}T`), y: uMatrizes.map(m => `N=${m}`),
+                type: 'heatmap', colorscale: 'Reds', hoverongaps: false,
+                hovertemplate: 'Matriz: %{y}<br>Threads: %{x}<br>Erro: %{z:.2f}%<extra></extra>'
+            }];
+
+            const layout = { margin: { l: 70, r: 20, t: 20, b: 40 }, xaxis: { title: "Concorrência (Threads)" }, yaxis: { title: "Dimensão (Matriz)" }, paper_bgcolor: "transparent", plot_bgcolor: "transparent" };
+            Plotly.react('graficoHeatmap', data, layout, { responsive: true, displayModeBar: false });
+        }
+
+        function renderizarInterface() {
+            const dados = filtrarDados();
+
+            let eSum=0, eCnt=0, tSum=0, tCnt=0, errSum=0, errCnt=0;
+            dados.forEach(d => {
+                if(d.empirico_flops) { eSum += d.empirico_flops; eCnt++; }
+                if(d.teorico_flops) { tSum += d.teorico_flops; tCnt++; }
+                const err = calcularErro(d.empirico_flops, d.teorico_flops);
+                if(err !== null) { errSum += err; errCnt++; }
+            });
+
+            document.getElementById("kpiTotal").innerText = dados.length;
+            document.getElementById("kpiEmpirico").innerText = eCnt>0 ? (eSum/eCnt).toFixed(1) : "0.0";
+            document.getElementById("kpiTeorico").innerText = tCnt>0 ? (tSum/tCnt).toFixed(1) : "0.0";
+            document.getElementById("kpiErro").innerText = errCnt>0 ? (errSum/errCnt).toFixed(2) + "%" : "0.00%";
+
+            const layoutPadrao = { margin: { l: 50, r: 20, t: 20, b: 40 }, legend: { orientation: "h", y: 1.15 }, paper_bgcolor: "transparent", plot_bgcolor: "transparent" };
+            const conf = { responsive: true, displayModeBar: false };
+
+            const aggThreads = agruparEixos(dados, "num_threads");
+            Plotly.react("graficoThreadsBar", [
+                { x: aggThreads.x, y: aggThreads.yEmp, name: "Físico", type: "bar", marker: {color: "#0d6efd"} },
+                { x: aggThreads.x, y: aggThreads.yTeo, name: "Teórico", type: "bar", marker: {color: "#198754"} }
+            ], { ...layoutPadrao, barmode: "group", xaxis: { title: "Concorrência (Threads)" }, yaxis: { title: "Média (GFLOPs)" } }, conf);
+
+            Plotly.react("graficoThreadsLine", [
+                { x: aggThreads.x, y: aggThreads.yEmp, name: "Físico", type: "scatter", mode: "lines+markers", line: {color: "#0d6efd", width:2} },
+                { x: aggThreads.x, y: aggThreads.yTeo, name: "Teórico", type: "scatter", mode: "lines+markers", line: {color: "#198754", width:2, dash:'dot'} }
+            ], { ...layoutPadrao, xaxis: { title: "Concorrência (Threads)" }, yaxis: { title: "Média (GFLOPs)" } }, conf);
+
+            const aggEst = agruparEixos(dados, "scaling_strategy");
+            Plotly.react("graficoEstrategias", [
+                { x: aggEst.x, y: aggEst.yEmp, name: "Físico", type: "bar", marker: {color: "#0d6efd"} },
+                { x: aggEst.x, y: aggEst.yTeo, name: "Teórico", type: "bar", marker: {color: "#198754"} }
+            ], { ...layoutPadrao, barmode: "group", xaxis: { title: "Estratégia OpenMP" }, yaxis: { title: "Média (GFLOPs)" } }, conf);
+
+            renderizarHeatmap(mockData); 
+
+            // NOVO: Gráfico de Dispersão (Scatter Plot Original e Restituído)
+            const dtMatriz = dados.sort((a,b) => a.matriz - b.matriz);
+            Plotly.react("graficoMatriz", [
+                { x: dtMatriz.map(d=>d.matriz), y: dtMatriz.map(d=>d.empirico_flops), name: "Físico", type: "scatter", mode: "markers", marker: {size: 8, color: "#0d6efd", opacity: 0.7} },
+                { x: dtMatriz.map(d=>d.matriz), y: dtMatriz.map(d=>d.teorico_flops), name: "Teórico", type: "scatter", mode: "markers", marker: {size: 8, color: "#198754", opacity: 0.7} }
+            ], { ...layoutPadrao, xaxis: { title: "Dimensão da Matriz (N)" }, yaxis: { title: "Vazão (GFLOPs)" } }, conf);
+
+            const tbody = document.getElementById("tabelaCorpo");
+            tbody.innerHTML = "";
+            dados.forEach(d => {
+                const err = calcularErro(d.empirico_flops, d.teorico_flops);
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="ps-4"><span class="badge border border-secondary text-secondary">${d.tipo}</span></td>
+                    <td>${d.scaling_strategy}</td>
+                    <td>${d.num_threads}</td>
+                    <td>${d.matriz.toLocaleString('pt-BR')}</td>
+                    <td class="text-end text-primary fw-bold">${d.empirico_flops ? d.empirico_flops.toFixed(1) : '-'}</td>
+                    <td class="text-end text-success fw-bold">${d.teorico_flops ? d.teorico_flops.toFixed(1) : '-'}</td>
+                    <td class="text-end pe-4 fw-semibold ${err && err > 5 ? 'text-danger' : 'text-muted'}">${err ? err.toFixed(2) + '%' : '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById("btnFiltrar").addEventListener("click", renderizarInterface);
+        window.addEventListener("resize", () => { ["graficoThreadsBar", "graficoThreadsLine", "graficoEstrategias", "graficoHeatmap", "graficoMatriz"].forEach(Plotly.Plots.resize); });
+
+        atualizarTextosFiltros();
+        renderizarInterface();
+    </script>
+</body>
+</html>
