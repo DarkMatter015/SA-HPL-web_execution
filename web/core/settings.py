@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "core"
 ]
 
 MIDDLEWARE = [
@@ -55,7 +56,7 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "core" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -73,10 +74,18 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+sqlite_db_env = environ.get("SQLITE_DB_PATH")
+if sqlite_db_env:
+    sqlite_db_path = sqlite_db_env
+elif Path("/sqlite_data").exists():
+    sqlite_db_path = "/sqlite_data/db.sqlite3"
+else:
+    sqlite_db_path = str(BASE_DIR / "db.sqlite3")
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": "sqlite_data/db.sqlite3",
+        "NAME": sqlite_db_path,
     }
 }
 
