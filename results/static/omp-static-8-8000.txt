@@ -1,0 +1,12 @@
+Iteration 1 - Elapsed time: 99.7873 seconds - MFLOPS: 3421.89
+Iteration 2 - Elapsed time: 99.8095 seconds - MFLOPS: 3421.13
+Iteration 3 - Elapsed time: 100.065 seconds - MFLOPS: 3412.4
+Iteration 4 - Elapsed time: 101.085 seconds - MFLOPS: 3377.95
+Iteration 5 - Elapsed time: 100.702 seconds - MFLOPS: 3390.81
+Iteration 6 - Elapsed time: 99.983 seconds - MFLOPS: 3415.19
+Iteration 7 - Elapsed time: 99.8885 seconds - MFLOPS: 3418.43
+Iteration 8 - Elapsed time: 99.7816 seconds - MFLOPS: 3422.09
+Iteration 9 - Elapsed time: 100.867 seconds - MFLOPS: 3385.27
+Iteration 10 - Elapsed time: 100.734 seconds - MFLOPS: 3389.74
+Elapsed time (mean ± std): 100.27 ± 0.513818 seconds
+Throughput (mean ± std): 3405.49 ± 17.4142 MFLOPS
