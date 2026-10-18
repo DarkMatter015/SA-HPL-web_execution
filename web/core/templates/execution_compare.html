@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Comparativo | SA-HPL &amp; GSPN{% endblock %}
+
+{% block content %}
+<div class="container-lg px-3 px-lg-4 py-5">
+    <nav aria-label="Navegação estrutural" class="mb-4">
+        <a class="small text-muted text-decoration-none" href="{% url 'history' %}">
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar ao histórico
+        </a>
+    </nav>
+
+    <header class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-2">Análise gráfica</p>
+            <h1 class="display-6 fw-semibold mb-2">Comparativo de desempenho</h1>
+            <p class="text-muted mb-0">Tipos: SA-HPL, GSPN e Híbrido. Vazão física SA-HPL versus estimativa teórica GSPN.</p>
+        </div>
+        {% if not erro %}
+        <form method="get" action="{% url 'comparison_pdf' %}" id="export-filtered-form">
+            <input type="hidden" name="ids">
+            <input type="hidden" name="type">
+            <input type="hidden" name="strategy">
+            <input type="hidden" name="threads">
+            <input type="hidden" name="matrix">
+            <input type="hidden" name="include_theoretical" value="1">
+        </form>
+        {% endif %}
+    </header>
+
+    <div class="notice p-3 mb-4" role="note">
+        <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
+        As vazões SA-HPL são medições reais para N=8.000; estimativas GSPN e datas são fictícias.
+        O gráfico suporta até 20 execuções por comparação.
+    </div>
+
+    {% if erro %}
+    <div class="notice notice-error p-4" role="alert">
+        <h2 class="h5">Não foi possível gerar a comparação</h2>
+        <p class="mb-3">{{ erro }}</p>
+        <a class="btn btn-outline-secondary" href="{% url 'history' %}">Selecionar execuções</a>
+    </div>
+    {% else %}
+    {{ chart_data|json_script:"analytics-chart-data" }}
+    {% include "partials/analytics_charts.html" with analysis_scope="compare" %}
+
+    <section class="surface-card p-3 p-md-4" aria-labelledby="comparison-table-title" id="analysis-results">
+        <div class="mb-3">
+            <p class="eyebrow mb-1">Dados consolidados</p>
+            <h2 class="h5 mb-0" id="comparison-table-title">Parâmetros e métricas</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" data-sortable>
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort-type="text">Execução</th>
+                        <th scope="col" data-sort-type="text">Tipo</th>
+                        <th scope="col" data-sort-type="text">Escalonador</th>
+                        <th scope="col" data-sort-type="number">Threads</th>
+                        <th scope="col" data-sort-type="number">Tempo médio</th>
+                        <th scope="col" data-sort-type="number">SA-HPL (MFLOPS)</th>
+                        <th scope="col" data-sort-type="number">GSPN estimado (MFLOPS)</th>
+                        <th scope="col">Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for execucao in execucoes %}
+                    <tr data-execution-id="{{ execucao.id }}">
+                        <th scope="row">{{ execucao.id }}</th>
+                        <td>{{ execucao.tipo }}</td>
+                        <td>{{ execucao.scaling_strategy }}</td>
+                        <td>{{ execucao.num_threads }}</td>
+                        <td data-sort-value="{{ execucao.duration_seconds }}">{{ execucao.duration_seconds|floatformat:2 }} s</td>
+                        <td data-sort-value="{{ execucao.flow_flops }}">{{ execucao.flow_flops|floatformat:2 }}</td>
+                        <td data-sort-value="{{ execucao.estimated_gspn_flow }}">{{ execucao.estimated_gspn_flow|floatformat:2 }}</td>
+                        <td><a class="btn btn-sm btn-outline-secondary" href="{% url 'execution_detail' execucao.id %}">Abrir</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

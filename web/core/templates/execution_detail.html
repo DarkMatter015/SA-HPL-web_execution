@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhe {{ execucao.id }} | SA-HPL &amp; GSPN{% endblock %}
+
+{% block content %}
+<div class="container-lg px-3 px-lg-4 py-5">
+    <nav aria-label="Navegação estrutural" class="mb-4">
+        <a class="small text-muted text-decoration-none" href="{% url 'history' %}">
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar ao histórico
+        </a>
+    </nav>
+
+    <header class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-2">Detalhe da execução</p>
+            <h1 class="display-6 fw-semibold mb-2">{{ execucao.id }}</h1>
+            <p class="text-muted mb-2">{{ execucao.started_at }}</p>
+            <span class="badge text-bg-secondary">Tipo: {{ execucao.tipo }}</span>
+        </div>
+        {% if execucao.status_code == 0 %}
+        <span class="badge text-bg-success align-self-md-start fs-6">SUCCESS</span>
+        {% else %}
+        <span class="badge text-bg-danger align-self-md-start fs-6">FAILED</span>
+        {% endif %}
+    </header>
+
+    {% if execucao.status_code == 1 %}
+    <section class="notice notice-error p-4 mb-4" aria-labelledby="failure-title" role="alert">
+        <h2 class="h5" id="failure-title"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Falha na execução</h2>
+        <p class="small text-muted mb-3">Rastreamento demonstrativo; esta falha foi criada apenas para mostrar o estado de erro.</p>
+        <pre class="mb-0 text-break"><code>{{ execucao.error_detail }}</code></pre>
+    </section>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="surface-card p-4 h-100">
+                <p class="eyebrow mb-2">Parâmetros</p>
+                <h2 class="h6">Configuração utilizada</h2>
+                <dl class="mb-0">
+                    <dt class="small text-muted mt-3">Escalonador</dt>
+                    <dd class="mb-0">{{ execucao.scaling_strategy }}</dd>
+                    <dt class="small text-muted mt-3">Threads</dt>
+                    <dd class="mb-0">{{ execucao.num_threads }}</dd>
+                    <dt class="small text-muted mt-3">Dimensão da matriz</dt>
+                    <dd class="mb-0">{{ execucao.array_size }} × {{ execucao.array_size }}</dd>
+                </dl>
+            </section>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="surface-card p-4 h-100">
+                <p class="eyebrow mb-2">Duração</p>
+                <h2 class="h6">Tempo médio medido</h2>
+                {% if execucao.duration_seconds != None %}
+                <p class="display-6 fw-semibold mt-3 mb-1">{{ execucao.duration_seconds|floatformat:2 }} <span class="fs-6 text-muted">s</span></p>
+                <p class="small text-muted mb-0">Desvio padrão: {{ execucao.duration_std|floatformat:3 }} s</p>
+                {% else %}
+                <p class="h3 mt-3 mb-1">—</p>
+                <p class="small text-muted mb-0">Sem medição para esta execução.</p>
+                {% endif %}
+            </section>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="surface-card p-4 h-100">
+                <p class="eyebrow mb-2">SA-HPL</p>
+                <h2 class="h6">Vazão física média</h2>
+                {% if execucao.flow_flops != None %}
+                <p class="display-6 fw-semibold mt-3 mb-1">{{ execucao.flow_flops|floatformat:2 }}</p>
+                <p class="small text-muted mb-0">MFLOPS · desvio padrão {{ execucao.flow_std|floatformat:2 }}</p>
+                {% else %}
+                <p class="h3 mt-3 mb-1">—</p>
+                <p class="small text-muted mb-0">Nenhuma métrica foi produzida.</p>
+                {% endif %}
+            </section>
+        </div>
+        {% if execucao.tipo != "SA-HPL" %}
+        <div class="col-12 col-md-6 col-xl-3">
+            <section class="surface-card p-4 h-100">
+                <p class="eyebrow mb-2">GSPN</p>
+                <h2 class="h6">Vazão estimada</h2>
+                {% if execucao.estimated_gspn_flow != None %}
+                <p class="display-6 fw-semibold mt-3 mb-1">{{ execucao.estimated_gspn_flow|floatformat:2 }}</p>
+                <p class="small text-muted mb-0">MFLOPS · estimativa fictícia para demonstração</p>
+                {% else %}
+                <p class="h3 mt-3 mb-1">—</p>
+                <p class="small text-muted mb-0">Nenhuma estimativa disponível.</p>
+                {% endif %}
+            </section>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if execucao.status_code == 0 %}
+    <section class="surface-card p-4 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col">
+                <p class="eyebrow mb-1">Referência serial</p>
+                <h2 class="h5 mb-0">Desempenho relativo ao baseline de 1 thread</h2>
+            </div>
+            <div class="col-auto text-end">
+                <p class="h4 mb-0">{{ execucao.speedup_vs_serial }}×</p>
+                <span class="small text-muted">{{ execucao.gain_vs_serial_pct }}% de ganho</span>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="d-flex flex-column flex-sm-row gap-2 mb-4">
+        <a class="btn btn-outline-secondary" href="{% url 'history' %}">
+            <i class="bi bi-list-ul me-2" aria-hidden="true"></i>Ver histórico
+        </a>
+        <form method="get" action="{% url 'execution_pdf' execucao.id %}" id="detail-export-form">
+            <input type="hidden" name="include_theoretical" value="1">
+            <button class="btn btn-primary" type="submit">
+            <i class="bi bi-file-earmark-pdf me-2" aria-hidden="true"></i>Exportar execução
+            </button>
+        </form>
+    </div>
+
+    {% if show_chart %}
+    {{ chart_data|json_script:"analytics-chart-data" }}
+    {% include "partials/analytics_charts.html" with analysis_scope="detail" show_chart=show_chart focused_execution_id=execucao.id %}
+    {% endif %}
+
+    <p class="small text-muted mt-4 mb-0">
+        Medição de {{ execucao.source_file }}.
+        {% if execucao.tipo == "Híbrido" %}A vazão GSPN e a data são demonstrativas.{% endif %}
+    </p>
+</div>
+{% endblock %}

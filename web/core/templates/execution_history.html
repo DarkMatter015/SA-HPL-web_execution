@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico | SA-HPL &amp; GSPN{% endblock %}
+
+{% block content %}
+<div class="container-lg px-3 px-lg-4 py-5">
+    <header class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+        <div>
+            <p class="eyebrow mb-2">Histórico demonstrativo</p>
+            <h1 class="display-6 fw-semibold mb-2">Histórico de execuções</h1>
+            <p class="text-muted mb-0">
+                Tipos disponíveis: SA-HPL, GSPN e Híbrido. Os resultados medidos são da matriz 8.000 × 8.000; datas e estimativas GSPN são fictícias.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <form method="get" action="{% url 'history_pdf' %}">
+                <button class="btn btn-outline-secondary" type="submit">
+                    <i class="bi bi-download me-2" aria-hidden="true"></i>Exportar todo histórico
+                </button>
+            </form>
+            <a class="btn btn-outline-secondary" href="{% url 'home' %}">
+                <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nova Execução
+            </a>
+        </div>
+    </header>
+
+    <form method="get" action="{% url 'history_pdf' %}" id="export-filtered-form">
+        <input type="hidden" name="selection" value="filtered">
+        <input type="hidden" name="ids">
+        <input type="hidden" name="type">
+        <input type="hidden" name="strategy">
+        <input type="hidden" name="threads">
+        <input type="hidden" name="matrix">
+        <input type="hidden" name="include_theoretical" value="1">
+    </form>
+    <form method="post" action="{% url 'execution_delete' %}" id="delete-selected-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bulk">
+    </form>
+    {% if messages %}
+    {% for message in messages %}
+    <div class="notice notice-success p-3 mb-4" role="status">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {{ chart_data|json_script:"analytics-chart-data" }}
+    {% include "partials/analytics_charts.html" with analysis_scope="history" %}
+
+    <div class="surface-card p-3 p-md-4" id="analysis-results">
+        <form method="get" action="{% url 'execution_compare' %}" id="history-selection-form">
+            <input type="hidden" name="selection" value="history">
+            <div class="d-flex flex-column flex-sm-row justify-content-between gap-3 mb-3">
+                <div>
+                    <h2 class="h5 mb-1">Resultados disponíveis</h2>
+                    <p class="small text-muted mb-0">
+                        Selecione até 20 execuções bem-sucedidas para comparar no gráfico.
+                    </p>
+                    <p class="small text-muted mb-0 mt-1" id="selection-count" aria-live="polite">
+                        0 execuções selecionadas
+                    </p>
+                </div>
+                <button class="btn btn-primary align-self-sm-start" type="submit" aria-label="Comparar execuções selecionadas" disabled>
+                    <i class="bi bi-bar-chart-line me-2" aria-hidden="true"></i>Comparar selecionadas
+                </button>
+                <button class="btn btn-outline-secondary align-self-sm-start" type="submit" formaction="{% url 'history_pdf' %}" id="export-selected-button" disabled>
+                    <i class="bi bi-file-earmark-arrow-down me-2" aria-hidden="true"></i>Exportar selecionadas
+                </button>
+                <button class="btn btn-outline-danger align-self-sm-start" type="button" id="delete-selected-button" disabled>
+                    <i class="bi bi-trash me-2" aria-hidden="true"></i>Excluir selecionadas
+                </button>
+            </div>
+        </form>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" data-sortable>
+                    <thead>
+                        <tr>
+                            <th scope="col"><span class="visually-hidden">Comparar</span></th>
+                            <th scope="col" data-sort-type="text">Execução</th>
+                            <th scope="col" data-sort-type="text">Tipo</th>
+                            <th scope="col" data-sort-type="text">Escalonador</th>
+                            <th scope="col" data-sort-type="number">Threads</th>
+                            <th scope="col" data-sort-type="number">Matriz</th>
+                            <th scope="col" data-sort-type="number">Tempo médio</th>
+                            <th scope="col" data-sort-type="number">Vazão medida</th>
+                            <th scope="col" data-sort-type="text">Data/hora</th>
+                            <th scope="col" data-sort-type="text">Status</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for execucao in execucoes %}
+                        <tr data-execution-id="{{ execucao.id }}" data-detail-url="{% url 'execution_detail' execucao.id %}" data-delete-form="delete-form-{{ execucao.id }}">
+                            <td>
+                                <input class="form-check-input" type="checkbox" form="history-selection-form" name="ids" value="{{ execucao.id }}" data-comparable="{% if execucao.status_code == 0 %}true{% else %}false{% endif %}" aria-label="Selecionar {{ execucao.id }} para exportar, comparar ou excluir">
+                            </td>
+                            <th scope="row" class="text-nowrap">{{ execucao.id }}</th>
+                            <td>{{ execucao.tipo }}</td>
+                            <td>{{ execucao.scaling_strategy }}</td>
+                            <td>{{ execucao.num_threads }}</td>
+                            <td>{{ execucao.array_size }} × {{ execucao.array_size }}</td>
+                            <td class="text-nowrap">{% if execucao.duration_seconds != None %}{{ execucao.duration_seconds|floatformat:2 }} s{% else %}—{% endif %}</td>
+                            <td class="text-nowrap">{% if execucao.flow_flops != None %}{{ execucao.flow_flops|floatformat:2 }} MFLOPS{% else %}—{% endif %}</td>
+                            <td class="text-nowrap" data-sort-value="{{ execucao.started_at_sort }}">{{ execucao.started_at }}</td>
+                            <td>
+                                {% if execucao.status_code == 0 %}
+                                <span class="badge text-bg-success">SUCCESS</span>
+                                {% else %}
+                                <span class="badge text-bg-danger">FAILED</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="btn btn-sm btn-outline-secondary" href="{% url 'execution_detail' execucao.id %}" aria-label="Detalhar {{ execucao.id }}">
+                                    <i class="bi bi-arrow-up-right-square" aria-hidden="true"></i>
+                                    <span class="visually-hidden">Detalhar</span>
+                                </a>
+                                <form method="post" action="{% url 'execution_delete' %}" id="delete-form-{{ execucao.id }}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="single">
+                                    <input type="hidden" name="execution_id" value="{{ execucao.id }}">
+                                    <button class="btn btn-sm btn-outline-danger" type="button" data-delete-form="delete-form-{{ execucao.id }}" data-delete-label="{{ execucao.id }}" aria-label="Excluir {{ execucao.id }}">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Excluir</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td class="text-center text-muted py-4" colspan="11">
+                                Nenhuma execução disponível para exibir.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="surface-card p-2 shadow position-fixed d-none" id="history-row-menu" role="menu" aria-label="Ações da execução">
+        <a class="btn btn-sm btn-outline-secondary w-100 text-start mb-1" id="row-menu-details" role="menuitem" href="#">
+            <i class="bi bi-arrow-up-right-square me-2" aria-hidden="true"></i>Detalhes
+        </a>
+        <button class="btn btn-sm btn-outline-danger w-100 text-start" id="row-menu-delete" type="button" role="menuitem">
+            <i class="bi bi-trash me-2" aria-hidden="true"></i>Excluir
+        </button>
+    </div>
+
+    <div class="modal fade" id="delete-confirmation-modal" tabindex="-1" aria-labelledby="delete-confirmation-title" aria-describedby="delete-confirmation-description" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="delete-confirmation-title">Confirmar exclusão</h2>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" id="delete-confirmation-description">A exclusão remove as execuções selecionadas deste histórico.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-button">
+                        <i class="bi bi-trash me-2" aria-hidden="true"></i>Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="small text-muted mt-3 mb-0">
+        MFLOPS e tempo SA-HPL correspondem às médias medidas nos arquivos em <code>results/</code>.
+        Estimativas GSPN aparecem apenas nos registros Híbridos e são fictícias.
+        A linha de falha também é fictícia e demonstra o tratamento de erros.
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (() => {
+        const form = document.getElementById("history-selection-form");
+        const countLabel = document.getElementById("selection-count");
+        const compareButton = form?.querySelector('button[type="submit"]');
+        const exportButton = document.getElementById("export-selected-button");
+        const deleteButton = document.getElementById("delete-selected-button");
+        const checkboxes = [...document.querySelectorAll('#analysis-results input[name="ids"]')];
+        if (!form || !countLabel || !compareButton || !exportButton || !deleteButton) return;
+
+        function updateSelection() {
+            const selected = checkboxes.filter((checkbox) => checkbox.checked);
+            const selectedCount = selected.length;
+            const comparableCount = selected.filter(
+                (checkbox) => checkbox.dataset.comparable === "true"
+            ).length;
+            countLabel.textContent = `${selectedCount} ${selectedCount === 1 ? "execução selecionada" : "execuções selecionadas"}`;
+            compareButton.disabled =
+                selectedCount <= 1 || selectedCount > 20 || comparableCount !== selectedCount;
+            exportButton.disabled = selectedCount === 0;
+            deleteButton.disabled = selectedCount === 0;
+        }
+
+        checkboxes.forEach((checkbox) => checkbox.addEventListener("change", updateSelection));
+        updateSelection();
+
+        const deleteModalElement = document.getElementById("delete-confirmation-modal");
+        const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalElement);
+        const confirmDeleteButton = document.getElementById("confirm-delete-button");
+        const deleteDescription = document.getElementById("delete-confirmation-description");
+        const bulkDeleteForm = document.getElementById("delete-selected-form");
+        let pendingDeleteForm = null;
+
+        function prepareDelete(form, description) {
+            pendingDeleteForm = form;
+            deleteDescription.textContent = description;
+            deleteModal.show();
+        }
+
+        deleteButton.addEventListener("click", () => {
+            const selectedIds = checkboxes
+                .filter((checkbox) => checkbox.checked)
+                .map((checkbox) => checkbox.value);
+            if (!selectedIds.length) return;
+            bulkDeleteForm.querySelectorAll('input[name="ids"]').forEach((input) => input.remove());
+            selectedIds.forEach((id) => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "ids";
+                input.value = id;
+                bulkDeleteForm.appendChild(input);
+            });
+            prepareDelete(
+                bulkDeleteForm,
+                `Tem certeza de que deseja excluir ${selectedIds.length} ${selectedIds.length === 1 ? "execução" : "execuções"} ${selectedIds.length === 1 ? "selecionada" : "selecionadas"} do histórico?`
+            );
+        });
+
+        const rowMenu = document.getElementById("history-row-menu");
+        const detailsLink = document.getElementById("row-menu-details");
+        const deleteRowButton = document.getElementById("row-menu-delete");
+        let activeDeleteForm = null;
+
+        function closeRowMenu() {
+            rowMenu.classList.add("d-none");
+            activeDeleteForm = null;
+        }
+
+        document.querySelectorAll("#analysis-results tbody tr[data-execution-id]").forEach((row) => {
+            row.addEventListener("contextmenu", (event) => {
+                event.preventDefault();
+                detailsLink.href = row.dataset.detailUrl;
+                activeDeleteForm = document.getElementById(row.dataset.deleteForm);
+                rowMenu.classList.remove("d-none");
+                const left = Math.min(event.clientX, window.innerWidth - rowMenu.offsetWidth - 8);
+                const top = Math.min(event.clientY, window.innerHeight - rowMenu.offsetHeight - 8);
+                rowMenu.style.left = `${Math.max(8, left)}px`;
+                rowMenu.style.top = `${Math.max(8, top)}px`;
+                deleteRowButton.focus();
+            });
+        });
+        deleteRowButton.addEventListener("click", () => {
+            if (activeDeleteForm) {
+                prepareDelete(activeDeleteForm, "Tem certeza de que deseja excluir esta execução do histórico?");
+            }
+            closeRowMenu();
+        });
+        document.querySelectorAll("button[data-delete-form]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const targetForm = document.getElementById(button.dataset.deleteForm);
+                prepareDelete(targetForm, `Tem certeza de que deseja excluir a execução ${button.dataset.deleteLabel} do histórico?`);
+            });
+        });
+        confirmDeleteButton.addEventListener("click", () => {
+            if (!pendingDeleteForm) return;
+            confirmDeleteButton.disabled = true;
+            pendingDeleteForm.requestSubmit();
+        });
+        deleteModalElement.addEventListener("hidden.bs.modal", () => {
+            confirmDeleteButton.disabled = false;
+            pendingDeleteForm = null;
+        });
+        document.addEventListener("click", (event) => {
+            if (!rowMenu.contains(event.target)) closeRowMenu();
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") closeRowMenu();
+        });
+    })();
+</script>
+{% endblock %}

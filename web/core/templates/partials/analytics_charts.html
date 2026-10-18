@@ -1,0 +1,226 @@
+{% if analysis_scope == "detail" %}
+{% if show_chart %}
+<section class="surface-card p-3 p-md-4 mb-4" aria-labelledby="analytics-chart-title">
+    <p class="eyebrow mb-1">Análise individual</p>
+    <h2 class="h5 mb-2" id="analytics-chart-title">SA-HPL real × GSPN simulado</h2>
+    <div id="graficoComparativo" style="height:380px" role="img" aria-label="Comparação da vazão SA-HPL real com a vazão GSPN simulada"></div>
+</section>
+{% endif %}
+{% else %}
+<section class="surface-card p-3 p-md-4 mb-4" aria-labelledby="analytics-filters-title">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
+        <div>
+            <p class="eyebrow mb-1">Filtros interativos</p>
+            <h2 class="h5 mb-0" id="analytics-filters-title">
+                {% if analysis_scope == "history" %}Análise do histórico completo{% else %}Análise das execuções selecionadas{% endif %}
+            </h2>
+        </div>
+        <div class="row g-2 flex-grow-1">
+            <div class="col-6 col-lg-3">
+                <label class="form-label small mb-1" for="analysis-filter-type">Tipo</label>
+                <select class="form-select form-select-sm analysis-filter" id="analysis-filter-type">
+                    <option value="">Todos</option>
+                    {% for value in filter_options.types %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label small mb-1" for="analysis-filter-strategy">Escalonador</label>
+                <select class="form-select form-select-sm analysis-filter" id="analysis-filter-strategy">
+                    <option value="">Todos</option>
+                    {% for value in filter_options.strategies %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label small mb-1" for="analysis-filter-threads">Threads</label>
+                <select class="form-select form-select-sm analysis-filter" id="analysis-filter-threads">
+                    <option value="">Todas</option>
+                    {% for value in filter_options.threads %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label small mb-1" for="analysis-filter-matrix">Matriz</label>
+                <select class="form-select form-select-sm analysis-filter" id="analysis-filter-matrix">
+                    <option value="">Todas</option>
+                    {% for value in filter_options.matrices %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        <label class="form-check small text-nowrap mb-1">
+            <input class="form-check-input" type="checkbox" id="show-theoretical" checked>
+            <span class="form-check-label">Exibir GSPN</span>
+        </label>
+        {% if analysis_scope == "compare" or analysis_scope == "history" %}
+        <button class="btn btn-primary text-nowrap" type="submit" form="export-filtered-form">
+            <i class="bi bi-file-earmark-pdf me-2" aria-hidden="true"></i>Exportar dados filtrados
+        </button>
+        {% endif %}
+    </div>
+</section>
+
+<div class="row g-3 mb-4" id="analytics-kpis">
+    <div class="col-6 col-xl-3"><section class="surface-card p-3 h-100"><p class="eyebrow mb-1">Execuções filtradas</p><p class="h3 mb-0" data-kpi="count">0</p></section></div>
+    <div class="col-6 col-xl-3"><section class="surface-card p-3 h-100"><p class="eyebrow mb-1">Média SA-HPL</p><p class="h3 mb-0" data-kpi="empirical">—</p><span class="small text-muted">MFLOPS</span></section></div>
+    <div class="col-6 col-xl-3"><section class="surface-card p-3 h-100"><p class="eyebrow mb-1">Média GSPN</p><p class="h3 mb-0" data-kpi="theoretical">—</p><span class="small text-muted">estimativa · MFLOPS</span></section></div>
+    <div class="col-6 col-xl-3"><section class="surface-card p-3 h-100"><p class="eyebrow mb-1">Erro relativo médio</p><p class="h3 mb-0" data-kpi="error">—</p><span class="small text-muted">GSPN vs SA-HPL</span></section></div>
+</div>
+
+<section class="surface-card p-3 mb-4" aria-labelledby="analytics-chart-title">
+    <h2 class="h6 px-2 pt-2" id="analytics-chart-title">Comparação de vazão: SA-HPL real × GSPN simulado</h2>
+    <div id="graficoComparativo" style="height:420px" role="img" aria-label="Gráfico combinado de barras e linhas comparando vazão SA-HPL real e GSPN simulada"></div>
+</section>
+{% endif %}
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+    (() => {
+        const source = document.getElementById("analytics-chart-data");
+        const chart = document.getElementById("graficoComparativo");
+        if (!source || !chart) return;
+
+        const allData = JSON.parse(source.textContent);
+        const controls = {
+            type: document.getElementById("analysis-filter-type"),
+            strategy: document.getElementById("analysis-filter-strategy"),
+            threads: document.getElementById("analysis-filter-threads"),
+            matrix: document.getElementById("analysis-filter-matrix"),
+            theoretical: document.getElementById("show-theoretical")
+        };
+        const hasControl = (key) => controls[key] && controls[key].value;
+        const average = (values) => values.length
+            ? values.reduce((sum, value) => sum + value, 0) / values.length
+            : null;
+        const layout = {
+            paper_bgcolor: "rgba(0,0,0,0)",
+            plot_bgcolor: "rgba(0,0,0,0)",
+            font: { color: "#d7e3da", family: "Inter, system-ui, sans-serif" },
+            margin: { t: 28, r: 24, b: 100, l: 68 },
+            legend: { orientation: "h", y: 1.12, x: 0 },
+            barmode: "group",
+            xaxis: { title: "Execução · escalonador · threads", gridcolor: "#252e28", automargin: true, tickangle: -35 },
+            yaxis: { title: "Vazão (MFLOPS)", gridcolor: "#252e28", rangemode: "tozero" }
+        };
+        const config = {
+            responsive: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ["lasso2d", "select2d"]
+        };
+
+        function filteredData() {
+            return allData.filter((item) =>
+                (!hasControl("type") || item.type === controls.type.value) &&
+                (!hasControl("strategy") || item.strategy === controls.strategy.value) &&
+                (!hasControl("threads") || String(item.threads) === controls.threads.value) &&
+                (!hasControl("matrix") || String(item.matrix) === controls.matrix.value)
+            );
+        }
+
+        function render() {
+            if (typeof Plotly === "undefined") {
+                chart.textContent = "Não foi possível carregar o gráfico. Verifique a conexão com o Plotly.";
+                return;
+            }
+
+            const data = filteredData();
+            const successful = data.filter((item) => item.status === "SUCCESS");
+            const labels = successful.map((item) =>
+                `${item.type} · ${item.strategy} · ${item.threads}T · N=${item.matrix}`
+            );
+            const empirical = successful.map((item) => item.empirical);
+            const theoretical = successful.map((item) =>
+                (!controls.theoretical || controls.theoretical.checked) && item.type !== "SA-HPL"
+                    ? item.theoretical
+                    : null
+            );
+            const comparable = successful.filter((item) =>
+                item.empirical !== null && item.theoretical !== null && item.type !== "SA-HPL"
+            );
+            const empiricalMean = average(successful
+                .filter((item) => item.type !== "GSPN")
+                .map((item) => item.empirical)
+                .filter((value) => value !== null));
+            const theoreticalMean = average(successful
+                .filter((item) => item.type !== "SA-HPL")
+                .map((item) => item.theoretical)
+                .filter((value) => value !== null));
+
+            const count = document.querySelector('[data-kpi="count"]');
+            if (count) count.textContent = data.length;
+            const empiricalKpi = document.querySelector('[data-kpi="empirical"]');
+            if (empiricalKpi) empiricalKpi.textContent = empiricalMean === null ? "—" : empiricalMean.toFixed(2);
+            const theoreticalKpi = document.querySelector('[data-kpi="theoretical"]');
+            if (theoreticalKpi) {
+                theoreticalKpi.textContent = (!controls.theoretical || controls.theoretical.checked)
+                    && theoreticalMean !== null
+                    ? theoreticalMean.toFixed(2)
+                    : "—";
+            }
+            const errorKpi = document.querySelector('[data-kpi="error"]');
+            if (errorKpi) {
+                const errors = comparable.map((item) => Math.abs(item.empirical - item.theoretical) / item.empirical * 100);
+                errorKpi.textContent = (!controls.theoretical || controls.theoretical.checked) && errors.length
+                    ? `${average(errors).toFixed(2)}%`
+                    : "—";
+            }
+
+            Plotly.react(chart, [
+                {
+                    name: "SA-HPL real",
+                    type: "bar",
+                    x: labels,
+                    y: empirical,
+                    marker: { color: "#00c868" },
+                    error_y: {
+                        type: "data",
+                        array: successful.map((item) => item.empirical_std || 0),
+                        visible: true,
+                        color: "#00c868"
+                    },
+                    hovertemplate: "%{x}<br>SA-HPL real: %{y:.2f} MFLOPS<extra></extra>"
+                },
+                {
+                    name: "GSPN simulado",
+                    type: "scatter",
+                    mode: "lines+markers",
+                    x: labels,
+                    y: theoretical,
+                    connectgaps: false,
+                    line: { color: "#6b9dc1", width: 2 },
+                    marker: { color: "#6b9dc1", size: 8 },
+                    hovertemplate: "%{x}<br>GSPN simulado: %{y:.2f} MFLOPS<extra></extra>"
+                }
+            ], {
+                ...layout,
+                annotations: successful.length ? [] : [{
+                    text: "Nenhuma execução bem-sucedida corresponde aos filtros.",
+                    x: 0.5, y: 0.5, xref: "paper", yref: "paper",
+                    showarrow: false, font: { color: "#aab7ad" }
+                }]
+            }, config);
+
+            document.querySelectorAll("#analysis-results tbody tr[data-execution-id]").forEach((row) => {
+                row.hidden = !data.some((item) => item.id === row.dataset.executionId);
+            });
+
+            const exportForm = document.getElementById("export-filtered-form");
+            if (exportForm) {
+                exportForm.querySelector('[name="ids"]').value = data.map((item) => item.id).join(",");
+                ["type", "strategy", "threads", "matrix"].forEach((key) => {
+                    const input = exportForm.querySelector(`[name="${key}"]`);
+                    if (input) input.value = controls[key]?.value || "";
+                });
+                exportForm.querySelector('[name="include_theoretical"]').value =
+                    controls.theoretical?.checked ? "1" : "0";
+                const exportButton = document.querySelector('button[form="export-filtered-form"]');
+                if (exportButton) exportButton.disabled = data.length === 0;
+            }
+        }
+
+        Object.values(controls).filter(Boolean).forEach((control) =>
+            control.addEventListener("change", render)
+        );
+        window.addEventListener("resize", () => {
+            if (chart.data) Plotly.Plots.resize(chart);
+        });
+        render();
+    })();
+</script>

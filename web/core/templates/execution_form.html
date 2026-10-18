@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Nova execução | SA-HPL &amp; GSPN{% endblock %}
+
+{% block content %}
+<div class="container-lg px-3 px-lg-4 py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-9">
+            <header class="mb-4 mb-lg-5">
+                <h1 class="display-6 fw-semibold mb-2">Configure sua execução</h1>
+                <p class="text-muted mb-0">Defina o benchmark e os parâmetros de processamento para preparar uma execução.</p>
+            </header>
+
+            {% if erro_execucao %}
+            <div class="notice notice-error p-3 mb-4" role="alert">
+                <i class="bi bi-exclamation-circle me-2" aria-hidden="true"></i>{{ erro_execucao }}
+            </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'home' %}" data-submitted="{{ form_submitted|yesno:'true,false' }}" novalidate>
+                {% csrf_token %}
+                <section class="surface-card p-3 p-md-4 p-lg-5 mb-3" aria-labelledby="tipo-title">
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <span class="brand-mark flex-shrink-0"><i class="bi bi-boxes" aria-hidden="true"></i></span>
+                        <div>
+                            <p class="eyebrow mb-1">01 <span class="mx-1">/</span> Tipo de processamento</p>
+                            <h2 class="h5 mb-1" id="tipo-title">O que deseja executar?</h2>
+                            <p class="small text-muted mb-0">Execute o benchmark físico, a simulação teórica ou os dois em conjunto.</p>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="task-option">
+                                <span class="d-flex align-items-start gap-3">
+                                    <input class="form-check-input mt-1" type="radio" name="task" value="SA-HPL" {% if valores.task == "SA-HPL" or not valores.task %}checked{% endif %} required>
+                                    <span>
+                                        <span class="task-option-title d-block">SA-HPL</span>
+                                        <span class="task-option-description">Benchmark físico de alto desempenho.</span>
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="task-option">
+                                <span class="d-flex align-items-start gap-3">
+                                    <input class="form-check-input mt-1" type="radio" name="task" value="GSPN" {% if valores.task == "GSPN" %}checked{% endif %} required>
+                                    <span>
+                                        <span class="task-option-title d-block">GSPN</span>
+                                        <span class="task-option-description">Simulação para estimativa de desempenho.</span>
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="task-option">
+                                <span class="d-flex align-items-start gap-3">
+                                    <input class="form-check-input mt-1" type="radio" name="task" value="HYBRID" {% if valores.task == "HYBRID" %}checked{% endif %} required>
+                                    <span>
+                                        <span class="task-option-title d-block">Híbrido</span>
+                                        <span class="task-option-description">Executa SA-HPL e GSPN em conjunto.</span>
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="invalid-feedback d-block mt-2" id="task-error" aria-live="polite">{% if erros.task %}{{ erros.task }}{% endif %}</div>
+                </section>
+
+                <section class="surface-card p-3 p-md-4 p-lg-5 mb-3" aria-labelledby="parametros-title">
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <span class="brand-mark flex-shrink-0"><i class="bi bi-sliders2" aria-hidden="true"></i></span>
+                        <div>
+                            <p class="eyebrow mb-1">02 <span class="mx-1">/</span> Parâmetros</p>
+                            <h2 class="h5 mb-1" id="parametros-title">Configure o processamento</h2>
+                            <p class="small text-muted mb-0">Os mesmos parâmetros de infraestrutura são aplicados aos três tipos.</p>
+                        </div>
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="scaling_strategy">Estratégia de escalonamento</label>
+                            <select class="form-select{% if erros.scaling_strategy %} is-invalid{% endif %}" id="scaling_strategy" name="scaling_strategy" required>
+                                <option value="">Selecione uma estratégia</option>
+                                {% for code, label in estrategias %}
+                                <option value="{{ code }}" {% if valores.scaling_strategy == code|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback d-block" id="scaling_strategy-error" aria-live="polite">{% if erros.scaling_strategy %}{{ erros.scaling_strategy }}{% endif %}</div>
+                            <div class="form-text">Política de distribuição das tarefas entre threads.</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="num_threads">Número de threads</label>
+                            {% if custom_threads %}
+                            <div class="d-flex gap-2">
+                                <input class="form-control{% if erros.num_threads %} is-invalid{% endif %}" id="num_threads" name="num_threads" type="number" min="1" max="32" step="1" value="{{ valores.num_threads }}" placeholder="Digite de 1 a 32" required>
+                                <button class="btn btn-outline-secondary text-nowrap" type="button" data-presets-for="num_threads">Opções prontas</button>
+                            </div>
+                            {% else %}
+                            <select class="form-select{% if erros.num_threads %} is-invalid{% endif %}" id="num_threads" name="num_threads" required>
+                                <option value="">Selecione</option>
+                                {% for thread_option in thread_options %}
+                                <option value="{{ thread_option }}" {% if valores.num_threads == thread_option|stringformat:"s" %}selected{% endif %}>{{ thread_option }}</option>
+                                {% endfor %}
+                                <option value="other">Outro</option>
+                            </select>
+                            {% endif %}
+                            <div class="invalid-feedback d-block" id="num_threads-error" aria-live="polite">{% if erros.num_threads %}{{ erros.num_threads }}{% endif %}</div>
+                            <div class="form-text">Opções rápidas ou qualquer inteiro de 1 a 32 em “Outro”.</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="array_size">Dimensão da matriz (N)</label>
+                            {% if custom_matrix %}
+                            <div class="d-flex gap-2">
+                                <input class="form-control{% if erros.array_size %} is-invalid{% endif %}" id="array_size" name="array_size" type="number" min="1" step="1" value="{{ valores.array_size }}" placeholder="Informe um inteiro positivo" required>
+                                <button class="btn btn-outline-secondary text-nowrap" type="button" data-presets-for="array_size">Opções</button>
+                            </div>
+                            {% else %}
+                            <select class="form-select{% if erros.array_size %} is-invalid{% endif %}" id="array_size" name="array_size" required>
+                                <option value="">Selecione</option>
+                                {% for matrix_option in matrix_options %}
+                                <option value="{{ matrix_option }}" {% if valores.array_size == matrix_option|stringformat:"s" %}selected{% endif %}>{{ matrix_option }}</option>
+                                {% endfor %}
+                                <option value="other">Outro</option>
+                            </select>
+                            {% endif %}
+                            <div class="invalid-feedback d-block" id="array_size-error" aria-live="polite">{% if erros.array_size %}{{ erros.array_size }}{% endif %}</div>
+                            <div class="form-text">Escolha uma opção ou use “Outro” para informar uma dimensão positiva.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 pt-2">
+                    <span class="small text-muted" id="form-status" aria-live="polite"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Preencha os campos obrigatórios para executar.</span>
+                    <button class="btn btn-primary px-4 py-2" id="execute-button" type="submit" disabled>
+                        <span class="button-label">Executar teste</span> <i class="bi bi-play-fill ms-2" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (() => {
+        const form = document.querySelector("form");
+        const button = document.getElementById("execute-button");
+        const formStatus = document.getElementById("form-status");
+        const fields = {
+            task: { error: document.getElementById("task-error") },
+            scaling_strategy: {
+                input: document.getElementById("scaling_strategy"),
+                error: document.getElementById("scaling_strategy-error")
+            },
+            num_threads: {
+                input: document.getElementById("num_threads"),
+                error: document.getElementById("num_threads-error"),
+                presets: [2, 4, 8, 12, 16, 32]
+            },
+            array_size: {
+                input: document.getElementById("array_size"),
+                error: document.getElementById("array_size-error"),
+                presets: [10000, 20000, 30000]
+            }
+        };
+        const hasServerErrors = form.dataset.submitted === "true";
+        const validationShown = new Set(
+            hasServerErrors
+                ? ["task", "scaling_strategy", "num_threads", "array_size"]
+                : []
+        );
+
+        function valueFor(field) {
+            if (field === "task") {
+                return form.querySelector('input[name="task"]:checked')?.value || "";
+            }
+            return fields[field].input.value;
+        }
+
+        function errorFor(field) {
+            const value = valueFor(field);
+            if (field === "task") {
+                return ["SA-HPL", "GSPN", "HYBRID"].includes(value)
+                    ? ""
+                    : "Selecione SA-HPL, GSPN ou Híbrido.";
+            }
+            if (field === "scaling_strategy") {
+                return value ? "" : "Selecione uma estratégia válida.";
+            }
+            const integer = /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
+            const number = Number(value);
+            if (field === "num_threads") {
+                return integer && number >= 1 && number <= 32
+                    ? ""
+                    : "Informe um número inteiro entre 1 e 32.";
+            }
+            return integer && number > 0
+                ? ""
+                : "Informe uma dimensão inteira maior que zero.";
+        }
+
+        function validateField(field, showError = true) {
+            const message = errorFor(field);
+            const fieldData = fields[field];
+            if (showError) validationShown.add(field);
+            if (fieldData.input) {
+                fieldData.input.classList.toggle("is-invalid", validationShown.has(field) && Boolean(message));
+                fieldData.input.classList.toggle("is-valid", !message && fieldData.input.value !== "");
+                fieldData.input.setAttribute("aria-invalid", String(validationShown.has(field) && Boolean(message)));
+            }
+            fieldData.error.textContent = validationShown.has(field) ? message : "";
+            return !message;
+        }
+
+        function setCustomMode(field, select) {
+            const fieldData = fields[field];
+            const wrapper = document.createElement("div");
+            wrapper.className = "d-flex gap-2";
+
+            const input = document.createElement("input");
+            input.type = "number";
+            input.id = field;
+            input.name = field;
+            input.className = "form-control";
+            input.min = "1";
+            if (field === "num_threads") input.max = "32";
+            input.step = "1";
+            input.required = true;
+            input.placeholder = field === "num_threads"
+                ? "Digite um inteiro de 1 a 32"
+                : "Digite uma dimensão inteira positiva";
+
+            const backButton = document.createElement("button");
+            backButton.type = "button";
+            backButton.className = "btn btn-outline-secondary text-nowrap";
+            backButton.dataset.presetsFor = field;
+            backButton.textContent = "Opções";
+            backButton.setAttribute("aria-label", `Selecionar opções para ${field}`);
+
+            wrapper.append(input, backButton);
+            select.replaceWith(wrapper);
+            fieldData.input = input;
+            input.focus();
+            validateField(field);
+            updateButton();
+        }
+
+        function setPresetMode(field, buttonElement) {
+            const fieldData = fields[field];
+            const select = document.createElement("select");
+            select.id = field;
+            select.name = field;
+            select.required = true;
+            select.className = "form-select";
+
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Selecione";
+            select.append(placeholder);
+
+            fieldData.presets.forEach((preset) => {
+                const option = document.createElement("option");
+                option.value = String(preset);
+                option.textContent = String(preset);
+                select.append(option);
+            });
+            const other = document.createElement("option");
+            other.value = "other";
+            other.textContent = "Outro";
+            select.append(other);
+
+            buttonElement.parentElement.replaceWith(select);
+            fieldData.input = select;
+            validateField(field, false);
+            updateButton();
+        }
+
+        function updateButton() {
+            const valid = Object.keys(fields).every((field) => !errorFor(field));
+            button.disabled = !valid;
+            formStatus.innerHTML = valid
+                ? '<i class="bi bi-check-circle me-1" aria-hidden="true"></i>Configuração válida. Pronta para executar.'
+                : '<i class="bi bi-info-circle me-1" aria-hidden="true"></i>Preencha os campos obrigatórios para executar.';
+        }
+
+        form.addEventListener("change", (event) => {
+            const target = event.target;
+            if (target.matches("select") && target.value === "other") {
+                setCustomMode(target.name, target);
+                return;
+            }
+            const field = target.name === "task" ? "task" : target.name;
+            if (fields[field]) validateField(field);
+            updateButton();
+        });
+
+        form.addEventListener("input", (event) => {
+            const field = event.target.name;
+            if (fields[field]) validateField(field);
+            updateButton();
+        });
+
+        form.addEventListener("click", (event) => {
+            const buttonElement = event.target.closest("[data-presets-for]");
+            if (buttonElement) setPresetMode(buttonElement.dataset.presetsFor, buttonElement);
+        });
+
+        form.addEventListener("submit", (event) => {
+            const valid = Object.keys(fields).every((field) => validateField(field));
+            if (!valid) {
+                event.preventDefault();
+                form.querySelector(".is-invalid")?.focus();
+            } else {
+                button.disabled = true;
+                button.querySelector(".button-label").textContent = "Enviando...";
+                formStatus.innerHTML = '<i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>Enviando configuração ao servidor...';
+            }
+        });
+
+        Object.keys(fields).forEach((field) => validateField(field, hasServerErrors));
+        updateButton();
+    })();
+</script>
+{% endblock %}
