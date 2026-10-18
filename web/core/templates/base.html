@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="pt-br">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#0a0a0a" />
+        <title>{% block title %}SA-HPL &amp; GSPN{% endblock %}</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                color-scheme: dark;
+                --page: #0a0a0a;
+                --surface: #111111;
+                --surface-raised: #171717;
+                --border: #292929;
+                --primary: #00c868;
+                --text: #f5f5f5;
+                --muted: #929292;
+                --danger: #ed646e;
+            }
+            body {
+                min-height: 100vh;
+                background: var(--page);
+                color: var(--text);
+                font-family:
+                    Inter,
+                    Roboto,
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    sans-serif;
+            }
+            .navbar {
+                background: rgba(10, 10, 10, 0.94);
+                border-bottom: 1px solid var(--border);
+            }
+            .navbar-brand {
+                color: var(--text);
+            }
+            .navbar-brand:hover {
+                color: var(--text);
+            }
+            .brand-mark {
+                align-items: center;
+                background: var(--surface-raised);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                color: var(--primary);
+                display: inline-flex;
+                height: 34px;
+                justify-content: center;
+                width: 34px;
+            }
+            .navbar-nav .nav-link {
+                border-radius: 7px;
+                color: var(--muted);
+                font-size: 0.9rem;
+                padding: 0.55rem 0.8rem;
+            }
+            .navbar-nav .nav-link:hover,
+            .navbar-nav .nav-link:focus,
+            .navbar-nav .nav-link.active {
+                color: var(--text);
+            }
+            .navbar-nav .nav-link.active {
+                background: var(--surface-raised);
+                box-shadow: inset 2px 0 var(--primary);
+            }
+            .surface-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+            }
+            .eyebrow {
+                color: var(--muted);
+                font-size: 0.75rem;
+                font-weight: 600;
+                letter-spacing: 0.09em;
+                text-transform: uppercase;
+            }
+            .text-muted,
+            .form-text {
+                color: var(--muted) !important;
+            }
+            .form-label {
+                color: #dedede;
+                font-size: 0.9rem;
+                font-weight: 500;
+            }
+            .form-control,
+            .form-select {
+                background-color: #0c0c0c;
+                border-color: #333;
+                color: var(--text);
+                min-height: 46px;
+            }
+            .form-control::placeholder {
+                color: #686868;
+            }
+            .form-control:focus,
+            .form-select:focus {
+                background-color: #0c0c0c;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 0.2rem rgba(0, 200, 104, 0.12);
+                color: var(--text);
+            }
+            .form-select option {
+                background: var(--surface);
+                color: var(--text);
+            }
+            .form-control.is-invalid,
+            .form-select.is-invalid {
+                border-color: var(--danger);
+            }
+            .form-control.is-valid,
+            .form-select.is-valid {
+                border-color: #454545;
+                background-image: none;
+            }
+            .form-check-input {
+                background-color: #0c0c0c;
+                border-color: #454545;
+            }
+            .form-check-input:checked {
+                background-color: var(--primary);
+                border-color: var(--primary);
+            }
+            .form-check-input:focus {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 0.2rem rgba(0, 200, 104, 0.12);
+            }
+            .task-option {
+                background: #0d0d0d;
+                border: 1px solid var(--border);
+                border-radius: 9px;
+                cursor: pointer;
+                display: block;
+                height: 100%;
+                padding: 16px;
+                transition:
+                    border-color 0.15s ease,
+                    background-color 0.15s ease;
+            }
+            .task-option:hover {
+                background: #131313;
+            }
+            .task-option:has(input:checked) {
+                background: #121512;
+                border-color: rgba(0, 200, 104, 0.65);
+            }
+            .task-option input {
+                accent-color: var(--primary);
+            }
+            .task-option-title {
+                color: var(--text);
+                font-weight: 600;
+            }
+            .task-option-description {
+                color: var(--muted);
+                font-size: 0.83rem;
+            }
+            .btn-primary {
+                --bs-btn-bg: var(--primary);
+                --bs-btn-border-color: var(--primary);
+                --bs-btn-color: #07110b;
+                --bs-btn-hover-bg: #12dc7a;
+                --bs-btn-hover-border-color: #12dc7a;
+                --bs-btn-hover-color: #07110b;
+                --bs-btn-active-bg: #00a955;
+                --bs-btn-active-border-color: #00a955;
+                font-weight: 600;
+            }
+            .btn-outline-secondary {
+                --bs-btn-color: #d4d4d4;
+                --bs-btn-border-color: #383838;
+                --bs-btn-hover-bg: #1c1c1c;
+                --bs-btn-hover-border-color: #484848;
+                --bs-btn-hover-color: #fff;
+            }
+            .btn:disabled,
+            .btn.disabled {
+                cursor: not-allowed;
+                opacity: 1;
+                box-shadow: none;
+            }
+            .btn-primary:disabled,
+            .btn-primary.disabled {
+                --bs-btn-bg: #0a331c;
+                --bs-btn-border-color: #0a331c;
+                --bs-btn-color: #8ab39c;
+                --bs-btn-disabled-bg: #0a331c;
+                --bs-btn-disabled-border-color: #0a331c;
+                --bs-btn-disabled-color: #8ab39c;
+            }
+            .btn-outline-secondary:disabled,
+            .btn-outline-secondary.disabled {
+                --bs-btn-color: #8ab39c;
+                --bs-btn-border-color: #004d26;
+                --bs-btn-disabled-bg: transparent;
+                --bs-btn-disabled-border-color: #004d26;
+                --bs-btn-disabled-color: #8ab39c;
+                --bs-btn-hover-bg: transparent;
+                --bs-btn-hover-border-color: #004d26;
+                --bs-btn-hover-color: #8ab39c;
+                background-color: transparent;
+            }
+            .btn-outline-danger {
+                --bs-btn-color: #f08a92;
+                --bs-btn-border-color: #8e3039;
+                --bs-btn-hover-bg: #351519;
+                --bs-btn-hover-border-color: #c84b56;
+                --bs-btn-hover-color: #ffb1b7;
+                --bs-btn-active-bg: #4a1c21;
+                --bs-btn-active-border-color: #c84b56;
+            }
+            .btn-outline-danger:disabled,
+            .btn-outline-danger.disabled {
+                --bs-btn-color: #9b696d;
+                --bs-btn-border-color: #56272c;
+                --bs-btn-disabled-color: #9b696d;
+                --bs-btn-disabled-border-color: #56272c;
+                --bs-btn-disabled-bg: transparent;
+                --bs-btn-hover-bg: transparent;
+                --bs-btn-hover-border-color: #56272c;
+                --bs-btn-hover-color: #9b696d;
+                background-color: transparent;
+            }
+            .modal-content {
+                background: var(--surface-raised);
+                border: 1px solid var(--border);
+                color: var(--text);
+            }
+            .modal-header,
+            .modal-footer {
+                border-color: var(--border);
+            }
+            .table-sort {
+                align-items: center;
+                background: transparent;
+                border: 0;
+                color: inherit;
+                display: inline-flex;
+                font: inherit;
+                gap: 0.4rem;
+                padding: 0;
+                text-align: left;
+            }
+            .table-sort:hover,
+            .table-sort:focus-visible {
+                color: var(--primary);
+            }
+            .table-sort:focus-visible {
+                outline: 2px solid var(--primary);
+                outline-offset: 3px;
+            }
+            .notice {
+                background: #111;
+                border: 1px solid #393939;
+                border-radius: 8px;
+                color: #c4c4c4;
+            }
+            .notice-success {
+                border-color: rgba(0, 200, 104, 0.4);
+            }
+            .notice-error {
+                border-color: rgba(237, 100, 110, 0.45);
+            }
+            .invalid-feedback {
+                color: var(--danger);
+            }
+            .subtle-divider {
+                border-color: var(--border);
+                opacity: 1;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    transition-duration: 0.01ms !important;
+                }
+            }
+        </style>
+        {% block extra_head %}{% endblock %}
+    </head>
+    <body>
+        <nav class="navbar sticky-top">
+            <div class="container-lg px-3 px-lg-4 py-2 d-flex flex-wrap gap-3">
+                <a
+                    class="navbar-brand d-flex align-items-center gap-2 fw-semibold"
+                    href="{% url 'home' %}"
+                >
+                    <span class="brand-mark"
+                        ><i class="bi bi-cpu" aria-hidden="true"></i
+                    ></span>
+                    <span
+                        >SA-HPL <span class="text-muted">&amp;</span> GSPN</span
+                    >
+                </a>
+                <div class="navbar-nav ms-auto flex-row gap-1">
+                    <a
+                        class="nav-link {% if nav_active == 'home' %}active{% endif %}"
+                        href="{% url 'home' %}"
+                    >
+                        <i class="bi bi-house-door me-1" aria-hidden="true"></i
+                        >Execução
+                    </a>
+                    <a
+                        class="nav-link {% if nav_active == 'history' %}active{% endif %}"
+                        href="{% url 'history' %}"
+                    >
+                        <i
+                            class="bi bi-clock-history me-1"
+                            aria-hidden="true"
+                        ></i
+                        >Histórico
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <main>{% block content %}{% endblock %}</main>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            (() => {
+                document.querySelectorAll("table[data-sortable]").forEach((table) => {
+                    table.querySelectorAll("thead th[data-sort-type]").forEach((header) => {
+                        const columnIndex = [...header.parentElement.cells].indexOf(header);
+                        const label = header.textContent.trim();
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "table-sort";
+                        button.setAttribute("aria-label", `Ordenar por ${label}`);
+                        button.innerHTML = `${label}<i class="bi bi-arrow-down-up" aria-hidden="true"></i>`;
+                        header.replaceChildren(button);
+
+                        button.addEventListener("click", () => {
+                            const ascending = header.dataset.sortDirection !== "ascending";
+                            table.querySelectorAll("thead th[data-sort-type]").forEach((cell) => {
+                                cell.removeAttribute("aria-sort");
+                                cell.dataset.sortDirection = "";
+                            });
+                            header.dataset.sortDirection = ascending ? "ascending" : "descending";
+                            header.setAttribute("aria-sort", header.dataset.sortDirection);
+                            button.querySelector("i").className = ascending
+                                ? "bi bi-arrow-up"
+                                : "bi bi-arrow-down";
+
+                            const rows = [...table.tBodies[0].rows].filter(
+                                (row) => row.cells.length === table.tHead.rows[0].cells.length
+                            );
+                            const type = header.dataset.sortType;
+                            rows.sort((left, right) => {
+                                const leftCell = left.cells[columnIndex];
+                                const rightCell = right.cells[columnIndex];
+                                const leftValue = leftCell.dataset.sortValue ?? leftCell.textContent.trim();
+                                const rightValue = rightCell.dataset.sortValue ?? rightCell.textContent.trim();
+                                const comparison = type === "number"
+                                    ? (Number.parseFloat(leftValue.replace(",", ".")) || 0)
+                                        - (Number.parseFloat(rightValue.replace(",", ".")) || 0)
+                                    : leftValue.localeCompare(rightValue, "pt-BR", {
+                                        numeric: true,
+                                        sensitivity: "base"
+                                    });
+                                return ascending ? comparison : -comparison;
+                            });
+                            rows.forEach((row) => table.tBodies[0].append(row));
+                        });
+                    });
+                });
+            })();
+        </script>
+        {% block scripts %}{% endblock %}
+    </body>
+</html>
